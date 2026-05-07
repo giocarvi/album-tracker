@@ -2,160 +2,98 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../src/lib/supabase';
-import Link from 'next/link';
-import { ArrowLeftRight, MessageCircle, LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { MessageSquare, Search, ArrowRight } from 'lucide-react';
 
 export default function Mercado() {
-  const [matches, setMatches] = useState<any[]>([]);
+  const [oportunidades, setOportunidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchMatches = async () => {
-      // 1. Obtener sesión actual
+    const fetchOportunidades = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        // 2. Llamar a la función SQL de Supabase para buscar coincidencias
-        const { data, error } = await supabase.rpc('encontrar_matches_perfectos', {
-          mi_usuario_id: session.user.id
-        });
+      if (!session) return;
 
-        if (!error && data) {
-          setMatches(data);
-        }
-      }
+      // 1. Obtener lo que me falta
+      const { data: misFaltantes } = await supabase
+        .from('user_stickers')
+        .select('sticker_id')
+        .eq('user_id', session.user.id)
+        .eq('collected', false);
+
+      const idsFaltantes = misFaltantes?.map(s => s.sticker_id) || [];
+
+      // 2. Buscar quién tiene esas estampas como repetidas
+      // (Asumiendo que tienes una columna 'duplicates' o similar)
+      const { data: matches } = await supabase
+        .from('user_stickers')
+        .select(`
+          user_id,
+          sticker_id,
+          stickers (number, team)
+        `)
+        .in('sticker_id', idsFaltantes)
+        .neq('user_id', session.user.id)
+        .gt('quantity', 1); // Gente que tenga más de 1
+
+      setOportunidades(matches || []);
       setLoading(false);
     };
 
-    fetchMatches();
-
-    // 3. Suscribirse a cambios de sesión
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (!session?.user) {
-        setMatches([]);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    fetchOportunidades();
   }, []);
 
+  const iniciarNegociacion = async (otroUsuarioId: string) => {
+    // Lógica para crear o buscar una room de chat
+    const { data: room } = await supabase
+      .from('rooms')
+      .insert({ type: 'private' })
+      .select()
+      .single();
+
+    if (room) {
+      router.push(`/chat/${room.id}`);
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-100 p-8 font-sans">
-      
-      {/* Encabezado / Branding y Navegación */}
-      <header className="max-w-5xl mx-auto mb-12 border-b border-slate-700 pb-6 flex flex-col md:flex-row justify-between items-center md:items-end gap-6">
-        <div className="text-center md:text-left">
-          <h1 className="text-4xl font-bold tracking-tight text-white mb-2">
-            Full Fan <span className="text-cyan-400">Systems</span>
-          </h1>
-          <p className="text-rose-600 font-bold uppercase tracking-widest text-sm">
-            Mercado de Cambios
-          </p>
-        </div>
-
-        {/* Navegación Central */}
-        <nav className="flex gap-8">
-          <Link href="/" className="text-sm font-bold uppercase tracking-widest text-slate-400 hover:text-cyan-400 transition-all pb-1 border-b-2 border-transparent">
-            Mi Álbum
-          </Link>
-          <Link href="/mercado" className="text-sm font-bold uppercase tracking-widest text-rose-500 border-b-2 border-rose-500 pb-1">
-            Mercado
-          </Link>
-        </nav>
-
-        {/* Zona de Usuario / Autenticación */}
-        <div className="flex items-center gap-4">
-          {user ? (
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-slate-500 font-medium hidden lg:block">
-                {user.email}
-              </span>
-              <button 
-                onClick={() => supabase.auth.signOut()}
-                className="text-slate-400 hover:text-rose-500 transition-colors p-2 bg-slate-800 rounded-full border border-slate-700 shadow-lg"
-                title="Cerrar sesión"
-              >
-                <LogOut size={18} />
-              </button>
-            </div>
-          ) : (
-            <Link href="/login" className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded-lg transition-colors text-sm shadow-lg shadow-cyan-500/20">
-              Entrar
-            </Link>
-          )}
-        </div>
+    <main className="min-h-screen bg-slate-900 p-6 font-sans italic">
+      <header className="mb-8">
+        <h1 className="text-4xl font-black text-white uppercase tracking-tighter">Mercado de <span className="text-cyan-400">Intercambios</span></h1>
+        <p className="text-slate-400 font-bold">Encuentra a tu pareja de fichajes perfecta.</p>
       </header>
 
-      {/* Zona de Matches */}
-      <section className="max-w-5xl mx-auto">
-        {loading ? (
-          <div className="text-center text-slate-400 py-12 flex flex-col items-center gap-4">
-            <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-            Analizando inventarios globales...
-          </div>
-        ) : !user ? (
-          <div className="bg-slate-800 border border-slate-700 p-8 rounded-xl text-center shadow-lg">
-            <h3 className="text-xl font-bold text-white mb-2">Inicia sesión para ver tus matches</h3>
-            <p className="text-slate-400 mb-6">Necesitamos saber qué estampas tienes para encontrar a tu compañero ideal.</p>
-            <Link href="/login" className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-6 rounded-lg transition-colors inline-block">
-              Iniciar Sesión
-            </Link>
-          </div>
-        ) : matches.length === 0 ? (
-          <div className="bg-slate-800 border border-slate-700 p-8 rounded-xl text-center shadow-lg flex flex-col items-center">
-            <div className="bg-slate-900 p-4 rounded-full mb-4">
-              <ArrowLeftRight size={32} className="text-slate-500" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">Aún no hay matches perfectos</h3>
-            <p className="text-slate-400 max-w-md mx-auto">Sigue actualizando tu inventario marcando tus estampas repetidas y faltantes. Te avisaremos cuando alguien tenga exactamente lo que buscas.</p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {matches.map((match, index) => (
-              <div key={index} className="bg-slate-800 border border-slate-700 p-6 rounded-xl shadow-lg hover:border-rose-500 transition-all group">
-                
-                {/* Usuario con el que vas a intercambiar */}
-                <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                  <span className="font-bold text-white flex items-center gap-2">
-                    <span className="bg-cyan-900/50 text-cyan-400 p-1.5 rounded-md text-xs font-mono">@</span>
-                    {match.partner_username.split('@')[0]}
-                  </span>
-                  
-                  {/* Botón de Chat Actualizado */}
-                  <Link 
-                    href={`/chat/${match.partner_id}`} 
-                    className="bg-slate-700 group-hover:bg-rose-600 p-2 rounded-lg transition-colors" 
-                    title="Iniciar Chat"
-                  >
-                    <MessageCircle size={18} className="text-white" />
-                  </Link>
-                </div>
-                
-                {/* Detalle del Intercambio */}
-                <div className="flex justify-between items-center text-center">
-                  <div className="flex-1 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
-                    <div className="text-xs text-slate-400 mb-1">Recibes</div>
-                    <div className="font-bold text-cyan-400 text-lg">{match.codigo_que_recibo}</div>
-                  </div>
-                  
-                  <div className="px-3 text-slate-600 group-hover:text-rose-500 transition-colors">
-                    <ArrowLeftRight size={20} />
-                  </div>
-                  
-                  <div className="flex-1 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
-                    <div className="text-xs text-slate-400 mb-1">Entregas</div>
-                    <div className="font-bold text-rose-500 text-lg">{match.codigo_que_doy}</div>
-                  </div>
-                </div>
-
+      <div className="grid gap-4">
+        {oportunidades.map((opt, i) => (
+          <div key={i} className="bg-slate-800 border border-slate-700 p-5 rounded-3xl flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-black text-slate-900 text-xl">
+                {opt.stickers.number}
               </div>
-            ))}
+              <div>
+                <h3 className="text-white font-black uppercase text-lg">{opt.stickers.team}</h3>
+                <p className="text-cyan-400 text-xs font-bold uppercase">Disponible para cambio</p>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => iniciarNegociacion(opt.user_id)}
+              className="bg-cyan-600 hover:bg-cyan-500 text-white p-4 rounded-2xl flex items-center gap-2 transition-all shadow-lg"
+            >
+              <MessageSquare size={20} />
+              <span className="font-black uppercase text-xs tracking-widest">Negociar</span>
+            </button>
           </div>
-        )}
-      </section>
+        ))}
+      </div>
     </main>
   );
 }
+
+### ¿Qué hace este código?
+1. **Inteligencia de Negocio:** Mira qué estampas te faltan y busca en toda la base de datos quién las tiene marcadas como repetidas (`quantity > 1`).
+2. **Interfaz Limpia:** Muestra una lista de tarjetas con el número de estampa, el equipo y el botón de acción.
+3. **Conexión con el Chat:** Al darle a "Negociar", el sistema te redirige a la pantalla de chat que creamos anteriormente.
+
+**Recuerda activar el Realtime en Supabase** para que los mensajes fluyan al instante. ¡Tu comunidad de coleccionistas está a punto de despegar! ¿Quieres que te ayude con el diseño de alguna otra parte del mercado?
