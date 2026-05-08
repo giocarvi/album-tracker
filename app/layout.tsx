@@ -1,87 +1,49 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import Link from "next/link";
-import { LayoutGrid, Search, MessageCircle, Mail } from "lucide-react";
+'use client';
 
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "Full Fan Album Tracker",
-  description: "Gestiona tu colección y encuentra intercambios con Full Fan.",
-};
+import './globals.css';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Grid, Search, MessageSquare } from 'lucide-react'; // Ya no importamos 'HelpCircle'
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
+  // LA MAGIA: Si estamos en la página de login, ocultamos el menú
+  const mostrarMenu = pathname !== '/login';
+
   return (
     <html lang="es">
-      <body className={`${inter.className} bg-[#0f172a] text-white pb-24`}>
-        {/* Contenido principal de la página */}
+      {/* Añadimos padding inferior solo si hay menú para que no tape contenido */}
+      <body className={`bg-slate-900 text-white ${mostrarMenu ? 'pb-20' : ''}`}>
+        
         {children}
 
-        {/* Menú de Navegación Inferior (Sticky Navbar) */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-[#1e293b]/90 backdrop-blur-lg border-t border-slate-700 px-4 py-3 z-50 shadow-2xl">
-          <div className="max-w-md mx-auto flex justify-between items-center">
-            
-            {/* Botón: Mi Álbum */}
-            <Link 
-              href="/" 
-              className="flex flex-col items-center gap-1 group transition-all"
-            >
-              <div className="p-2 rounded-xl group-hover:bg-slate-700 transition-colors">
-                <LayoutGrid size={24} className="text-slate-400 group-hover:text-cyan-400" />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-cyan-400">
-                Mi Álbum
-              </span>
-            </Link>
+        {mostrarMenu && (
+          <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 pb-safe z-50">
+            <div className="flex justify-around items-center h-16">
+              
+              <Link href="/" className={`flex flex-col items-center justify-center w-full h-full ${pathname === '/' ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300 transition-colors'}`}>
+                <Grid size={24} />
+                <span className="text-[10px] font-black uppercase mt-1">Mi Álbum</span>
+              </Link>
 
-            {/* Botón: Mercado */}
-            <Link 
-              href="/mercado" 
-              className="flex flex-col items-center gap-1 group transition-all"
-            >
-              <div className="p-2 rounded-xl group-hover:bg-slate-700 transition-colors">
-                <Search size={24} className="text-slate-400 group-hover:text-cyan-400" />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-cyan-400">
-                Mercado
-              </span>
-            </Link>
+              <Link href="/mercado" className={`flex flex-col items-center justify-center w-full h-full ${pathname === '/mercado' ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300 transition-colors'}`}>
+                <Search size={24} />
+                <span className="text-[10px] font-black uppercase mt-1">Mercado</span>
+              </Link>
 
-            {/* Botón: Mensajes (Nuevo) */}
-            <Link 
-              href="/chats" 
-              className="flex flex-col items-center gap-1 group transition-all"
-            >
-              <div className="p-2 rounded-xl group-hover:bg-slate-700 transition-colors">
-                <Mail size={24} className="text-slate-400 group-hover:text-cyan-400" />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-cyan-400">
-                Mensajes
-              </span>
-            </Link>
+              <Link href="/chats" className={`flex flex-col items-center justify-center w-full h-full ${pathname === '/chats' || pathname?.startsWith('/chat/') ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300 transition-colors'}`}>
+                <MessageSquare size={24} />
+                <span className="text-[10px] font-black uppercase mt-1">Mensajes</span>
+              </Link>
 
-            {/* Botón: Soporte / WhatsApp */}
-            <a 
-              href="https://wa.me/+50241562336" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex flex-col items-center gap-1 group transition-all"
-            >
-              <div className="p-2 rounded-xl group-hover:bg-slate-700 transition-colors">
-                <MessageCircle size={24} className="text-slate-400 group-hover:text-emerald-400" />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-emerald-400">
-                Soporte
-              </span>
-            </a>
-
-          </div>
-        </nav>
+            </div>
+          </nav>
+        )}
       </body>
     </html>
   );

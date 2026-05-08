@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../src/lib/supabase';
+import { useRouter } from 'next/navigation';
 import { MinusCircle, PlusCircle, LogOut, Search, Phone } from 'lucide-react';
 import Link from 'next/link';
 
@@ -11,22 +12,38 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('Todas');
+  
+  // Agregamos el router aquí
+  const router = useRouter();
 
   useEffect(() => {
     loadStickers();
+    
+    // Verificamos la sesión inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) loadInventory(session.user.id);
+      if (!session) {
+        // Si no hay sesión, expulsamos al Login inmediatamente
+        router.push('/login');
+        return;
+      }
+      setUser(session.user);
+      loadInventory(session.user.id);
     });
 
+    // Escuchamos si el usuario cierra sesión para expulsarlo
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) loadInventory(session.user.id);
-      else setInventory({});
+      if (!session) {
+        setUser(null);
+        setInventory({});
+        router.push('/login');
+      } else {
+        setUser(session.user);
+        loadInventory(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   const loadStickers = async () => {
     const { data, error } = await supabase.from('stickers').select('*').order('id');
@@ -115,10 +132,10 @@ export default function Home() {
         </div>
         <nav className="flex gap-4">
           <Link href="/" className="px-5 py-2 rounded-lg text-xs font-bold bg-cyan-600 text-white shadow-lg">MI ÁLBUM</Link>
-          {user ? (
-            <button onClick={() => supabase.auth.signOut()} className="bg-slate-800 p-2.5 rounded-xl border border-slate-700 text-slate-400 hover:text-rose-500"><LogOut size={18} /></button>
-          ) : (
-            <Link href="/login" className="bg-white text-slate-900 px-6 py-2 rounded-xl font-bold text-sm">Entrar</Link>
+          {user && (
+            <button onClick={() => supabase.auth.signOut()} className="bg-slate-800 p-2.5 rounded-xl border border-slate-700 text-slate-400 hover:text-rose-500">
+              <LogOut size={18} />
+            </button>
           )}
         </nav>
       </div>
