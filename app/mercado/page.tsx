@@ -1,6 +1,6 @@
 'use client';
 
-// Usando las columnas correctas: code, team y name
+// Usando las columnas correctas y función de negociación mejorada
 import { useEffect, useState } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -72,19 +72,27 @@ export default function Mercado() {
   }, []);
 
   const iniciarNegociacion = async (otroUsuarioId: string) => {
-    const { data: room, error } = await supabase
-      .from('rooms')
-      .insert({})
-      .select()
-      .single();
+    try {
+      // 1. Intentamos crear la sala
+      const { data: room, error } = await supabase
+        .from('rooms')
+        .insert([{}])
+        .select()
+        .single();
 
-    if (error) {
-      console.error("Error creando sala:", error);
-      return;
-    }
+      if (error) {
+        alert("Error al crear la sala (Revisa los permisos RLS en Supabase): " + error.message);
+        console.error("Detalle del error:", error);
+        return;
+      }
 
-    if (room) {
-      router.push(`/chat/${room.id}`);
+      if (room) {
+        // 2. Si la sala se creó, volamos al chat
+        router.push(`/chat/${room.id}`);
+      }
+    } catch (err) {
+      alert("Ocurrió un error inesperado al conectar.");
+      console.error("Error inesperado:", err);
     }
   };
 
