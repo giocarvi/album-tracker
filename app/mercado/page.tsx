@@ -1,5 +1,6 @@
 'use client';
 
+// Forzando actualización en Vercel para que tome el nuevo código
 import { useEffect, useState } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import { useRouter } from 'next/navigation';
