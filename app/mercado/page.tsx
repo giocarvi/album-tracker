@@ -20,29 +20,24 @@ export default function Mercado() {
         return;
       }
 
-      // 1. Obtener los IDs de lo que me falta usando el nombre real: user_inventory
-      const { data: misFaltantes, error: errFaltantes } = await supabase
-        .from('user_inventory') 
+      // 1. Obtener las estampas que YA TIENES (cantidad mayor a 0)
+      const { data: misEstampas, error: errEstampas } = await supabase
+        .from('user_inventory')
         .select('sticker_id')
         .eq('user_id', session.user.id)
-        .eq('collected', false);
+        .gt('quantity', 0);
 
-      if (errFaltantes) {
-        console.error("Error obteniendo faltantes:", errFaltantes);
+      if (errEstampas) {
+        console.error("Error obteniendo mi inventario:", errEstampas);
         setLoading(false);
         return;
       }
 
-      const idsFaltantes = misFaltantes?.map(s => s.sticker_id) || [];
+      // Creamos una lista solo con los IDs de las estampas que ya posees
+      const idsQueYaTengo = misEstampas?.map(s => s.sticker_id) || [];
 
-      if (idsFaltantes.length === 0) {
-        setOportunidades([]);
-        setLoading(false);
-        return;
-      }
-
-      // 2. Buscar quién tiene esas mismas IDs con cantidad > 1 en user_inventory
-      const { data: matches, error: errMatches } = await supabase
+      // 2. Buscar TODAS las repetidas de otros usuarios en la red
+      const { data: allDuplicates, error: errMatches } = await supabase
         .from('user_inventory')
         .select(`
           user_id,
@@ -52,16 +47,22 @@ export default function Mercado() {
             team
           )
         `)
-        .in('sticker_id', idsFaltantes)
         .neq('user_id', session.user.id)
         .gt('quantity', 1);
 
       if (errMatches) {
-        console.error("Error en búsqueda de matches:", errMatches);
-      } else {
-        setOportunidades(matches || []);
+        console.error("Error en búsqueda de repetidas:", errMatches);
+        setLoading(false);
+        return;
       }
-      
+
+      // 3. LA MAGIA: Filtramos para mostrarte SOLO las que NO tienes
+      const matchesPerfectos = (allDuplicates || []).filter(
+        (dup) => !idsQueYaTengo.includes(dup.sticker_id)
+      );
+
+      console.log("Intercambios listos para ti:", matchesPerfectos);
+      setOportunidades(matchesPerfectos);
       setLoading(false);
     };
 
