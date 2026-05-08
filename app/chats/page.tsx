@@ -8,7 +8,6 @@ import { MessageSquare, ChevronRight, Loader2 } from 'lucide-react';
 export default function ChatsList() {
   const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -18,29 +17,22 @@ export default function ChatsList() {
         router.push('/login');
         return;
       }
-      setUser(session.user);
 
-      // Buscamos las salas donde el usuario ha participado
-      // Nota: Esta consulta asume que los mensajes vinculan al usuario con la room
-      const { data: userMessages } = await supabase
-        .from('messages')
-        .select('room_id')
-        .eq('sender_id', session.user.id);
+      // LA MAGIA: Buscamos todas las salas donde yo sea user_a (invité) o user_b (me invitaron)
+      const { data: roomsData, error } = await supabase
+        .from('rooms')
+        .select(`
+          id,
+          created_at,
+          user_a,
+          user_b,
+          messages (text, created_at)
+        `)
+        .or(`user_a.eq.${session.user.id},user_b.eq.${session.user.id}`)
+        .order('created_at', { ascending: false });
 
-      const roomIds = Array.from(new Set(userMessages?.map(m => m.room_id) || []));
-
-      if (roomIds.length > 0) {
-        const { data: roomsData } = await supabase
-          .from('rooms')
-          .select(`
-            id,
-            created_at,
-            messages (text, created_at)
-          `)
-          .in('id', roomIds)
-          .order('created_at', { ascending: false });
-
-        setRooms(roomsData || []);
+      if (!error && roomsData) {
+        setRooms(roomsData);
       }
       setLoading(false);
     };
@@ -65,12 +57,12 @@ export default function ChatsList() {
           <p className="text-slate-500 font-black uppercase text-xs">Cargando conversaciones...</p>
         </div>
       ) : rooms.length === 0 ? (
-        <div className="bg-slate-800/50 border border-slate-700 rounded-3xl p-10 text-center">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-3xl p-10 text-center shadow-lg">
           <MessageSquare className="mx-auto text-slate-600 mb-4" size={48} />
           <p className="text-slate-400 font-bold uppercase text-sm">No tienes chats activos todavía</p>
           <button 
             onClick={() => router.push('/mercado')}
-            className="mt-6 bg-cyan-600 text-white px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest"
+            className="mt-6 bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all active:scale-95"
           >
             Ir al Mercado
           </button>
@@ -94,7 +86,7 @@ export default function ChatsList() {
                       Negociación #{room.id.slice(0, 5)}
                     </h3>
                     <p className="text-slate-400 text-xs font-medium line-clamp-1 mt-1 italic">
-                      {lastMessage?.text || "Sin mensajes aún..."}
+                      {lastMessage?.text || "Toca para abrir el chat..."}
                     </p>
                   </div>
                 </div>

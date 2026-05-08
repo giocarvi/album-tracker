@@ -1,6 +1,6 @@
 'use client';
 
-// Usando las columnas correctas y función de negociación mejorada
+// Usando las columnas correctas y vinculando a ambos usuarios en la sala de chat
 import { useEffect, useState } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -73,10 +73,16 @@ export default function Mercado() {
 
   const iniciarNegociacion = async (otroUsuarioId: string) => {
     try {
-      // 1. Intentamos crear la sala
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // 1. Intentamos crear la sala vinculando a user_a (tú) y user_b (el otro coleccionista)
       const { data: room, error } = await supabase
         .from('rooms')
-        .insert([{}])
+        .insert([{
+          user_a: session.user.id,
+          user_b: otroUsuarioId
+        }])
         .select()
         .single();
 
