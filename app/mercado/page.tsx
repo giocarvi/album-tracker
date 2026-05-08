@@ -1,6 +1,6 @@
 'use client';
 
-// Forzando actualización en Vercel para que tome el nuevo código
+// Usando las columnas correctas: code, team y name
 import { useEffect, useState } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -44,8 +44,9 @@ export default function Mercado() {
           user_id,
           sticker_id,
           stickers (
-            number,
-            team
+            code,
+            team,
+            name
           )
         `)
         .neq('user_id', session.user.id)
@@ -116,15 +117,15 @@ export default function Mercado() {
           {oportunidades.map((opt, i) => (
             <div key={i} className="bg-slate-800 border border-slate-700 p-5 rounded-3xl flex items-center justify-between shadow-xl">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-black text-slate-900 text-xl">
-                  {opt.stickers?.number || '?'}
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-black text-slate-900 text-sm">
+                  {opt.stickers?.code || '?'}
                 </div>
                 <div>
                   <h3 className="text-white font-black uppercase text-lg leading-none">
-                    {opt.stickers?.team || 'Equipo'}
+                    {opt.stickers?.name || 'Jugador'}
                   </h3>
                   <p className="text-cyan-400 text-[10px] font-black uppercase tracking-tighter mt-1">
-                    Sobrante disponible
+                    {opt.stickers?.team || 'Equipo'} - Disponible
                   </p>
                 </div>
               </div>
