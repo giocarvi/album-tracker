@@ -36,6 +36,11 @@ export default function RootLayout({
                 <span className="text-[10px] font-black uppercase mt-1">Mercado</span>
               </Link>
 
+              <Link href="/quiniela" className={`flex flex-col items-center justify-center w-full h-full ${pathname === '/quiniela' ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300 transition-colors'}`}>
+                <Trophy size={24} />
+               <span className="text-[10px] font-black uppercase mt-1">Quiniela</span>
+              </Link>
+              
               <Link href="/chats" className={`flex flex-col items-center justify-center w-full h-full ${pathname === '/chats' || pathname?.startsWith('/chat/') ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300 transition-colors'}`}>
                 <MessageSquare size={24} />
                 <span className="text-[10px] font-black uppercase mt-1">Mensajes</span>
