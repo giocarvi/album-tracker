@@ -64,23 +64,25 @@ export default function Quiniela() {
     }));
   };
 
-  const guardarPronosticos = async () => {
+const guardarPronosticos = async () => {
     setSaving(true);
-    const upserts = Object.keys(predictions).map(matchIdStr => {
+    
+    // Usamos flatMap para evitar el problema de los 'null' con TypeScript
+    const upserts = Object.keys(predictions).flatMap(matchIdStr => {
       const matchId = parseInt(matchIdStr);
       const pred = predictions[matchId];
       
       // Solo guardamos si ambos campos tienen un número
       if (pred.a !== '' && pred.b !== '') {
-        return {
+        return [{
           user_id: user.id,
           match_id: matchId,
           predicted_score_a: parseInt(pred.a),
           predicted_score_b: parseInt(pred.b)
-        };
+        }];
       }
-      return null;
-    }).filter(Boolean); // Filtramos los nulos
+      return []; // Si no hay datos completos, devolvemos un arreglo vacío y TypeScript es feliz
+    });
 
     if (upserts.length > 0) {
       const { error } = await supabase
@@ -92,6 +94,8 @@ export default function Quiniela() {
       } else {
         alert("¡Pronósticos guardados con éxito!");
       }
+    } else {
+      alert("No hay pronósticos completos para guardar (llena ambos marcadores).");
     }
     setSaving(false);
   };
