@@ -36,10 +36,15 @@ export default function RootLayout({
                 <span className="text-[10px] font-black uppercase mt-1">Mercado</span>
               </Link>
 
-              <Link href="/quiniela" className={`flex flex-col items-center justify-center w-full h-full ${pathname === '/quiniela' ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300 transition-colors'}`}>
-                <Trophy size={24} />
-               <span className="text-[10px] font-black uppercase mt-1">Quiniela</span>
-              </Link>
+              <a 
+               href="https://penka.io?id=C32207" 
+               target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-cyan-400 transition-colors"
+              >
+              <Trophy size={24} />
+              <span className="text-[10px] font-black uppercase mt-1">Quiniela</span>
+              </a>
 
               <Link href="/chats" className={`flex flex-col items-center justify-center w-full h-full ${pathname === '/chats' || pathname?.startsWith('/chat/') ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300 transition-colors'}`}>
                 <MessageSquare size={24} />
